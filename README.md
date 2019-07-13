@@ -1,15 +1,26 @@
-# 为中国用户在 Docker for Mac/Windows 中开启 Kubernetes 
+# Docker Desktop for Mac/Windows 开启 Kubernetes
 
-中文|[English](README_en.md)
+中文 | [English](README_en.md)
 
 说明: 
 
-* 需安装 Docker for Mac或者Docker for Windows，如果没有请下载[下载 Docker CE最新版本](https://store.docker.com/search?type=edition&offering=community)
-* 当前 master 分支已经在 Docker for Mac/Windows 18.09/18.06 (包含 Kubernetes 1.10.3) 版本测试通过，如果你希望使用 18.03 版本, 请使用下面命令切换 18.03 分支 ```git checkout 18.03```
+* 需安装 Docker Desktop 的 Mac 或者 Windows 版本，如果没有请下载[下载 Docker CE最新版本](https://store.docker.com/search?type=edition&offering=community)
+* 当前 master 分支已经在 Docker for Mac/Windows 2.0.5.x (包含 Docker CE 19.03.0 和 Kubernetes 1.14.3) 版本测试通过
+  * 如果你希望使用 Docker for Mac/Windows 2.0.4.x (包含 Docker CE 18.09.1 和 Kubernetes 1.14.1) , 请使用下面命令切换 [v1.14.1 分支](https://github.com/AliyunContainerService/k8s-for-docker-desktop/tree/v1.14.1) ```git checkout v1.14.1```
+  * 如果你希望使用 Docker for Mac/Windows 2.0.1.x/2.0.2.x/2.0.3.x (包含 Docker CE 18.09.1 和 Kubernetes 1.13.0) , 请使用下面命令切换 [v2.0.1.0 分支](https://github.com/AliyunContainerService/k8s-for-docker-desktop/tree/v2.0.1.0) ```git checkout v2.0.1.0```
+  * 如果你希望使用 Docker for Mac/Windows 2.0.0.2/2.0.0.3 (包含 Docker CE 18.09.1 和 Kubernetes 1.10.11) , 请使用下面命令切换 [v2.0.0.2 分支](https://github.com/AliyunContainerService/k8s-for-docker-desktop/tree/v2.0.0.2) ```git checkout v2.0.0.2```
+  * 如果你希望使用 18.09/18.06 版本(包含 Kubernetes 1.10.3) , 请使用下面命令切换 [18.09 分支](https://github.com/AliyunContainerService/k8s-for-docker-desktop/tree/18.09) ```git checkout 18.09```
+  * 如果你希望使用 18.03 版本, 请使用下面命令切换 [18.03 分支](https://github.com/AliyunContainerService/k8s-for-docker-desktop/tree/18.03) ```git checkout 18.03```
 
-### Docker for Mac 开启 Kubernetes
 
-为 Docker daemon 配置 Docker Hub 的中国官方镜像加速 ```https://registry.docker-cn.com```
+
+查看 Docker Desktop版本，Docker -> About  Docker Desktop
+![about](images/about.png)
+
+
+### Docker Desktop for Mac 开启 Kubernetes
+
+为 Docker daemon 配置镜像加速，参考[阿里云镜像服务](https://cr.console.aliyun.com/cn-hangzhou/instances/mirrors) 或中科大镜像加速地址```https://docker.mirrors.ustc.edu.cn```
 
 ![mirror](images/mirror.png)
 
@@ -29,14 +40,21 @@
 
 ![k8s](images/k8s.png)
 
+**TIPS**：如果在Kubernetes部署的过程中出现问题，可以通过docker desktop应用日志获得实时日志信息：
 
-### Docker for Windows 开启 Kubernetes
+```bash
+pred='process matches ".*(ocker|vpnkit).*"
+  || (process in {"taskgated-helper", "launchservicesd", "kernel"} && eventMessage contains[c] "docker")'
+/usr/bin/log stream --style syslog --level=debug --color=always --predicate "$pred"
+```
 
-为 Docker daemon 配置 Docker Hub 的中国官方镜像加速 ```https://registry.docker-cn.com```
+### Docker Desktop for Windows 开启 Kubernetes
+
+为 Docker daemon 配置镜像加速，参考[阿里云镜像服务](https://cr.console.aliyun.com/cn-hangzhou/instances/mirrors) 或使用中科大镜像加速地址 ```https://docker.mirrors.ustc.edu.cn```
 
 ![mirror](images/mirror_win.png)
 
-可选操作: 为 Kubernetes 配置 CPU 和 内存资源，建议分配 4GB 或更多内存。 
+可选操作: 为 Kubernetes 配置 CPU 和 内存资源，建议分配 4GB 或更多内存。
 
 ![resource](images/resource_win.png)
 
@@ -60,11 +78,17 @@
 
 ![k8s](images/k8s_win.png)
 
+**TIPS**：
+
+* 如果在Kubernetes部署的过程中出现问题，可以在 C:\ProgramData\DockerDesktop下的service.txt 查看Docker日志
+* 如果看到 Kubernetes一直在启动状态，请参考 [Issue 3769(comment)](https://github.com/docker/for-win/issues/3769#issuecomment-486046718) 和 [Issue 1962(comment)](https://github.com/docker/for-win/issues/1962#issuecomment-431091114)
+
+
 
 ### 配置 Kubernetes
 
 
-可选操作: 切换Kubernetes运行上下文至 docker-for-desktop
+可选操作: 切换Kubernetes运行上下文至 docker-for-desktop (docker-ce 18.09 下 context 为 docker-desktop)
 
 
 ```shell
@@ -100,22 +124,32 @@ kubectl proxy
 
 http://localhost:8001/api/v1/namespaces/kube-system/services/https:kubernetes-dashboard:/proxy/#!/overview?namespace=default
 
-### 配置 kubeconfig (可选)
+### 配置 kubeconfig (可跳过)
 
-```bash
-$ TOKEN=$(kubectl -n kube-system describe secret default| awk '$1=="token:"{print $2}')
+
+对于Mac环境
+
+```shell
+TOKEN=$(kubectl -n kube-system describe secret default| awk '$1=="token:"{print $2}')
 kubectl config set-credentials docker-for-desktop --token="${TOKEN}"
 ```
 
-#### 选择 kubeconfig 文件
+对于Windows环境
+
+```shell
+$TOKEN=((kubectl -n kube-system describe secret default | Select-String "token:") -split " +")[1]
+kubectl config set-credentials docker-for-desktop --token="${TOKEN}"
+```
+
+#### 登录dashboard的时候选择 kubeconfig 文件
 
 ![resource](images/k8s_credentials.png)
 
 选择 kubeconfig 文件,路径如下：
 
 ```
-Win: %UserProfile%\.kube\config
 Mac: $HOME/.kube/config
+Win: %UserProfile%\.kube\config
 ```
 
 点击登陆，进入Kubernetes Dashboard
@@ -127,7 +161,7 @@ Mac: $HOME/.kube/config
 #### 安装 Ingress
 
 ```shell
-kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/master/deploy/mandatory.yaml
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/master/deploy/static/mandatory.yaml
 kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/master/deploy/provider/cloud-generic.yaml
 ```
 
@@ -170,7 +204,7 @@ kubectl delete -f sample/ingress.yaml
 
 ```shell
 kubectl delete -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/master/deploy/provider/cloud-generic.yaml
-kubectl delete -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/master/deploy/mandatory.yaml
+kubectl delete -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/master/deploy/static/mandatory.yaml
 ```
 
 ### 安装 Helm
@@ -179,27 +213,61 @@ kubectl delete -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/mas
 
 #### 在 Mac OS 上安装
 
+##### 通过 brew 安装
+
+brew 安装的版本可能会和 helm server 不兼容, 如果在后续使用 helm 安装组件的过程中出现以下错误，可以 `通过二进制包安装` 对应的版本
+
+```
+$ helm install install/kubernetes/helm/istio-init --name istio-init --namespace istio-system
+Error: incompatible versions client[v2.13.1] server[v2.12.2]
+```
+
 ```shell
 # Use homebrew on Mac
 brew install kubernetes-helm
 
 # Install Tiller into your Kubernetes cluster
-helm init --upgrade -i registry.cn-hangzhou.aliyuncs.com/google_containers/tiller:v2.11.0 --skip-refresh
+helm init --upgrade -i registry.cn-hangzhou.aliyuncs.com/google_containers/tiller:v2.14.1 --skip-refresh
 
-# update charts repo (Optional)
+# Change helm repo
+helm repo add stable http://mirror.azure.cn/kubernetes/charts-incubator/
+
+# Update charts repo (Optional)
 helm repo update
+```
+
+##### 通过二进制包安装
+
+```
+# Download binary release
+在 https://github.com/helm/helm/releases 中找到匹配的版本并下载(需要梯子), 如: https://storage.googleapis.com/kubernetes-helm/helm-v2.14.1-darwin-amd64.tar.gz
+
+# Unpack
+
+tar -zxvf helm-v2.0.0-linux-amd64.tgz
+
+# Move it to its desired destination
+
+mv darwin-amd64/helm /usr/local/bin/helm
+
 ```
 
 #### 在Windows上安装
 
+如果在后续使用 helm 安装组件的过程中出现版本兼容问题，可以参考 `通过二进制包安装` 思路安装匹配的版本
+
 ```shell
 # Use Chocolatey on Windows
+# 注：安装的时候需要保证网络能够访问googleapis这个域名
 choco install kubernetes-helm
 
 # Install Tiller into your Kubernetes cluster
-helm init --upgrade -i registry.cn-hangzhou.aliyuncs.com/google_containers/tiller:v2.11.0 --skip-refresh
+helm init --upgrade -i registry.cn-hangzhou.aliyuncs.com/google_containers/tiller:v2.14.1 --skip-refresh
 
-# update charts repo (Optional)
+# Change helm repo
+helm repo add stable http://mirror.azure.cn/kubernetes/charts-incubator/
+
+# Update charts repo (Optional)
 helm repo update
 ```
 
@@ -210,11 +278,11 @@ helm repo update
 
 可以根据文档安装 Istio https://istio.io/docs/setup/kubernetes/
 
-#### 下载 Istio 1.0.4 并安装 CLI
+#### 下载 Istio 1.1.1 并安装 CLI
 
 ```bash
-curl -L https://git.io/getLatestIstio | sh -
-cd istio-1.0.4/
+curl -L https://git.io/getLatestIstio | ISTIO_VERSION=1.2.2 sh -
+cd istio-1.2.2/
 export PATH=$PWD/bin:$PATH
 ```
 
@@ -229,6 +297,13 @@ export PATH=$PWD/bin:$PATH
 #### 通过 Helm chart 安装 Istio
 
 ```shell
+# 安装 istio-init chart 安装所有的 Istio CRD
+helm install install/kubernetes/helm/istio-init --name istio-init --namespace istio-system
+
+# 验证下安装的 Istio CRD 个数, 应该安装23个CRD
+kubectl get crds | grep 'istio.io\|certmanager.k8s.io' | wc -l
+
+# 开始 istio chart 安装
 helm install install/kubernetes/helm/istio --name istio --namespace istio-system
 ```
 
